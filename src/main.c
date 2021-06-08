@@ -46,6 +46,12 @@ int main(int argc, char* argv[])
     assert(status >= 0);
   }
 
+  // We'll use this for a check below
+  uint64_t true_total = 0;
+  for(uint32_t ii=0; ii<n_ids; ++ii) {
+    true_total += final_counts[ii];
+  }
+
   // sort the final counts and store the sort indices (descending order)
   puts("Indirectly sorting forest_ids by final counts...");
   size_t* sort_ind = NULL;
@@ -95,7 +101,7 @@ int main(int argc, char* argv[])
   H5Eset_auto(estack_id, NULL, NULL);
 
   puts("Calculating forest placements...");
-  for (int snap = 0; snap < FINAL_SNAP; ++snap) {
+  for (int snap = 0; snap < FINAL_SNAP+1; ++snap) {
     char dset_name[128] = { '\0' };
     sprintf(dset_name, "snapshots/snap_%03d", snap);
 
@@ -129,6 +135,7 @@ int main(int argc, char* argv[])
     printf("%d ", snap);
     fflush(stdout);
   }
+  printf("\n");
   
   // Restore previous error handler
   H5Eset_auto(estack_id, old_func, old_client_data);
@@ -142,6 +149,14 @@ int main(int argc, char* argv[])
   }
   fprintf(fout, "%d", rank_counts[N_RANKS - 1]);
   fclose(fout);
+
+  // Do a quick sanity check
+  uint64_t total = 0;
+  for (uint32_t ii=0; ii<N_RANKS; ++ii) {
+    total += rank_counts[ii];
+  }
+  printf("true total = %lu, assigned total = %lu\n", true_total, total);
+  assert(total == true_total);
 
   free(sort_ind);
   free(snap_counts);

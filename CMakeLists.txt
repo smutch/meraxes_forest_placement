@@ -26,7 +26,11 @@ set_property(TARGET assignment_tests PROPERTY C_STANDARD 11)
 target_compile_options(
     assignment_tests PRIVATE 
     $<$<CONFIG:RELEASE>:-O3 -march=native>
-    $<$<CONFIG:DEBUG>:-O0 -Wall -Werror>
+    $<$<CONFIG:DEBUG>:-O0 -Wall -Werror -fsanitize=address,leak,undefined -fno-common -fno-omit-frame-pointer>
+    )
+target_link_options(
+    assignment_tests PRIVATE
+    $<$<CONFIG:DEBUG>:-fsanitize=address,leak,undefined>
     )
 
 # 3rd party
