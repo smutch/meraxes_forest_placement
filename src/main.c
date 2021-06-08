@@ -47,10 +47,22 @@ int main(int argc, char* argv[])
   }
 
   // sort the final counts and store the sort indices (descending order)
+  puts("Indirectly sorting forest_ids by final counts...");
   size_t* sort_ind = NULL;
   sort_ind = calloc(n_ids, sizeof(size_t));
   assert(sort_ind != NULL);
-  gsl_sort_int_largest_index(sort_ind, n_ids, forest_ids, 1, n_ids);
+  gsl_sort_int_index(sort_ind, final_counts, 1, n_ids);
+  {
+    int ii = 0;
+    int jj = 0;
+    while (ii < jj) {
+      int tmp = sort_ind[ii];
+      sort_ind[ii] = sort_ind[jj];
+      sort_ind[jj] = tmp;
+      ii++;
+      jj--;
+    }
+  }
 
   // {
   //   int* tmp = NULL;
@@ -75,12 +87,24 @@ int main(int argc, char* argv[])
   snap_counts = calloc(n_ids, sizeof(int));
   assert(snap_counts != NULL);
 
+  // Save old error handler and turn off error handling
+  herr_t (*old_func)(long, void*) = NULL;
+  void *old_client_data = NULL;
+  hid_t estack_id = 0;
+  H5Eget_auto(estack_id, &old_func, &old_client_data);
+  H5Eset_auto(estack_id, NULL, NULL);
+
+  puts("Calculating forest placements...");
   for (int snap = 0; snap < FINAL_SNAP; ++snap) {
     char dset_name[128] = { '\0' };
     sprintf(dset_name, "snapshots/snap_%03d", snap);
 
     herr_t status = H5LTread_dataset_int(file_id, dset_name, snap_counts);
-    assert(status >= 0);
+    if (status < 0) {
+      printf("%d ", snap);
+      fflush(stdout);
+      continue;
+    }
 
     // loop through non-zero counts
     for (int ii = 0; ii < n_ids; ++ii) {
@@ -102,7 +126,12 @@ int main(int argc, char* argv[])
         }
       }
     }
+    printf("%d ", snap);
+    fflush(stdout);
   }
+  
+  // Restore previous error handler
+  H5Eset_auto(estack_id, old_func, old_client_data);
 
   // write the results
   FILE* fout = NULL;

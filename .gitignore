@@ -1,6 +1,7 @@
 build/
 compile_commands.json
 .clangd/
+results.txt
 
 # Prerequisites
 *.d
